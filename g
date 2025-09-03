@@ -20,10 +20,14 @@ show_usage() {
     echo "  --files              Show only filenames with matches"
     echo "  --no-ignore          Don't use .gitignore"
     echo ""
+    echo "IMPORTANT: Always use single quotes around patterns to avoid shell interpretation!"
+    echo ""
     echo "Examples:"
     echo "  g 'function.*Promise'           # Find async functions"
-    echo "  g '\\bTODO\\b' src/             # Find TODO comments"
+    echo "  g '\\bTODO\\b' src/             # Find TODO comments (word boundaries)"
     echo "  g 'class.*extends.*Component'   # Find React class components"
+    echo "  g '\\\$[A-Z_]+' .               # Find dollar variables like \\\$USER"
+    echo "  g '^import.*from' src/          # Find import statements"
 }
 
 # Parse arguments
@@ -33,8 +37,15 @@ EXTRA_RG_OPTS=()
 
 parse_args() {
     if [[ $# -eq 0 ]]; then
-        show_usage
+        echo "Usage: g <pattern> [directory] [options]" >&2
+        echo "Try 'g --help' for more information." >&2
         exit 1
+    fi
+
+    # Handle help first
+    if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+        show_usage
+        exit 0
     fi
 
     PATTERN="$1"
@@ -56,18 +67,27 @@ parse_args() {
                 shift
                 if [[ $# -gt 0 ]]; then
                     EXTRA_RG_OPTS+=("--after-context" "$1")
+                else
+                    echo "Error: --after requires a number" >&2
+                    exit 1
                 fi
                 ;;
             -B|--before)
                 shift
                 if [[ $# -gt 0 ]]; then
                     EXTRA_RG_OPTS+=("--before-context" "$1")
+                else
+                    echo "Error: --before requires a number" >&2
+                    exit 1
                 fi
                 ;;
             -C|--context)
                 shift
                 if [[ $# -gt 0 ]]; then
                     EXTRA_RG_OPTS+=("--context" "$1")
+                else
+                    echo "Error: --context requires a number" >&2
+                    exit 1
                 fi
                 ;;
             --files)
@@ -82,6 +102,7 @@ parse_args() {
                 ;;
             -*)
                 echo "Unknown option: $1" >&2
+                echo "Try 'g --help' for more information." >&2
                 exit 1
                 ;;
             *)

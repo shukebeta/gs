@@ -16,18 +16,24 @@ show_usage() {
     echo "  --dry-run           Show what would be changed without making changes"
     echo "  --no-ignore         Don't use .gitignore"
     echo ""
+    echo "IMPORTANT: Always use single quotes around patterns and replacements!"
+    echo "           This prevents shell interpretation of special characters."
+    echo ""
     echo "Regex Examples:"
     echo "  # Convert function declarations to arrow functions"
     echo "  s 'function (\\w+)\\((.*?)\\)' 'const \$1 = (\$2) =>' src/"
     echo ""
     echo "  # Update import statements"
-    echo "  s \"import (.*) from ['\\\"](.+)['\\\"]\" 'import \$1 from \"\$2.js\"' src/"
+    echo "  s 'import (.*) from [\"'\"'](.+)[\"'\"']' 'import \$1 from \"\$2.js\"' src/"
     echo ""
     echo "  # Convert var to const with word boundaries"
     echo "  s '\\bvar\\b' 'const' src/"
     echo ""
     echo "  # Reformat dates from YYYY-MM-DD to DD/MM/YYYY"
-    echo "  s '(\\d{4})-(\\d{2})-(\\d{2})' '\$3/\$2/\$1' data/"
+    echo "  s '([0-9]{4})-([0-9]{2})-([0-9]{2})' '\$3/\$2/\$1' data/"
+    echo ""
+    echo "  # Replace dollar variables (literal \$ in replacement)"
+    echo "  s '\\\$[A-Z_]+' 'REPLACED_VAR' src/"
     echo ""
     echo "WARNING: Always use --dry-run first to preview changes!"
 }
@@ -40,8 +46,22 @@ DRY_RUN=false
 EXTRA_RG_OPTS=()
 
 parse_args() {
-    if [[ $# -lt 3 ]]; then
+    if [[ $# -eq 0 ]]; then
+        echo "Usage: s <search_pattern> <replacement> <directory> [options]" >&2
+        echo "Try 's --help' for more information." >&2
+        exit 1
+    fi
+
+    # Handle help first
+    if [[ "$1" == "-h" || "$1" == "--help" ]]; then
         show_usage
+        exit 0
+    fi
+
+    if [[ $# -lt 3 ]]; then
+        echo "Error: Missing required arguments" >&2
+        echo "Usage: s <search_pattern> <replacement> <directory> [options]" >&2
+        echo "Try 's --help' for more information." >&2
         exit 1
     fi
 
@@ -71,6 +91,7 @@ parse_args() {
                 ;;
             -*)
                 echo "Unknown option: $1" >&2
+                echo "Try 's --help' for more information." >&2
                 exit 1
                 ;;
         esac
